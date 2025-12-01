@@ -21,9 +21,8 @@ export default function Home() {
         <section className="flex flex-col sm:flex-row items-center justify-between mb-24 gap-12 min-h-[340px] sm:min-h-[420px]">
           {/* Profile Photo Circle (Left) */}
           <div className="flex-1 flex justify-start w-full">
-            <div className="w-64 h-64 rounded-full bg-zinc-900 border-4 border-zinc-800 flex items-center justify-center overflow-hidden shadow-2xl relative">
-              {/* Upload your profile photo below by replacing src */}
-              {/* <Image src="/profile.jpg" alt="Profile" width={256} height={256} className="object-cover w-full h-full rounded-full" /> */}
+            <div className="w-64 h-64 rounded-full overflow-hidden shadow-2xl relative">
+              <img src="/image.png" alt="Profile" className="object-cover w-full h-full" />
             </div>
           </div>
           {/* Title and Description (Right) */}
