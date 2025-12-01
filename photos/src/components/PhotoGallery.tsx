@@ -3,30 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 
-// Example photo array - add your photos here
-// Supports both .png and .jpg/.jpeg formats
-// Photos should be placed in /public/photos folder
-export const photos = [
-  // Add your photos like this:
-  // { src: "/photos/photo1.jpg", alt: "Photo 1" },
-  // { src: "/photos/photo2.png", alt: "Photo 2" },
-  // { src: "/photos/photo3.jpeg", alt: "Photo 3" },
-  
-  // Placeholder boxes (replace with your actual photos)
-  { src: "", alt: "Photo 1", placeholder: true },
-  { src: "", alt: "Photo 2", placeholder: true },
-  { src: "", alt: "Photo 3", placeholder: true },
-  { src: "", alt: "Photo 4", placeholder: true },
-  { src: "", alt: "Photo 5", placeholder: true },
-  { src: "", alt: "Photo 6", placeholder: true },
-  { src: "", alt: "Photo 7", placeholder: true },
-  { src: "", alt: "Photo 8", placeholder: true },
-  { src: "", alt: "Photo 9", placeholder: true },
-  { src: "", alt: "Photo 10", placeholder: true },
-  { src: "", alt: "Photo 11", placeholder: true },
-  { src: "", alt: "Photo 12", placeholder: true },
-];
-
 interface Photo {
   src: string;
   alt: string;
@@ -40,9 +16,63 @@ interface PhotoGalleryProps {
 // Random heights for uneven masonry look
 const placeholderHeights = [280, 350, 220, 400, 300, 260, 380, 320, 240, 360, 290, 340];
 
-export default function PhotoGallery({ images = photos }: PhotoGalleryProps) {
+// Fisher-Yates shuffle algorithm
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+export default function PhotoGallery({ images: propImages }: PhotoGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [displayPhotos, setDisplayPhotos] = useState<Photo[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch photos from the API on mount
+  useEffect(() => {
+    if (propImages) {
+      setPhotos(propImages);
+      setDisplayPhotos(shuffleArray(propImages));
+      setLoading(false);
+      return;
+    }
+
+    const fetchPhotos = async () => {
+      try {
+        const response = await fetch("/api/photos");
+        const data = await response.json();
+        setPhotos(data.photos);
+        setDisplayPhotos(shuffleArray(data.photos));
+      } catch (error) {
+        console.error("Error fetching photos:", error);
+        setPhotos([]);
+        setDisplayPhotos([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPhotos();
+  }, [propImages]);
+
+  // Shuffle photos every 5 minutes
+  useEffect(() => {
+    if (photos.length === 0) return;
+
+    const interval = setInterval(() => {
+      setDisplayPhotos(shuffleArray(photos));
+      setLoadedImages(new Set()); // Reset loaded state for fade-in effect
+    }, 5 * 60 * 1000); // 5 minutes in milliseconds
+
+    return () => clearInterval(interval);
+  }, [photos]);
+
+  const images = displayPhotos;
 
   const handleImageLoad = (index: number) => {
     setLoadedImages((prev) => new Set(prev).add(index));
@@ -92,6 +122,22 @@ export default function PhotoGallery({ images = photos }: PhotoGalleryProps) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedIndex, goToPrevious, goToNext]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <div className="text-zinc-500">Loading photos...</div>
+      </div>
+    );
+  }
+
+  if (images.length === 0) {
+    return (
+      <div className="flex justify-center items-center py-20">
+        <div className="text-zinc-500">No photos yet. Add images to /public/photos folder.</div>
+      </div>
+    );
+  }
 
   return (
     <>
